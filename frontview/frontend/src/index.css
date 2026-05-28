@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-main: #050505;
+  --color-bg-secondary: #0a0a0a;
+  --color-primary: #22c55e;
+  --color-accent: #ff0000; /* For that cinematic pop if needed */
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  
+  --shadow-cinematic: 0 0 50px rgba(34, 197, 94, 0.2);
+}
+
+@layer base {
+  :root {
+    background-color: var(--color-bg-main);
+    color: white;
+  }
+}
+
+/* Custom Utilities for Cinematic Design */
+.font-cinematic {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+}
+
+.text-massive {
+  font-size: clamp(8rem, 25vw, 40rem);
+  line-height: 0.8;
+}
+
+.text-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.marquee-strip {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee 20s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Glassmorphism for Cinematic UI */
+.glass-cinematic {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bg-radial-gradient {
+  background: radial-gradient(circle at center, var(--color-primary) 0%, transparent 70%);
+}
+
+/* Lenis Smooth Scroll Styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}

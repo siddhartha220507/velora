@@ -1,0 +1,31 @@
+# Dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# Environment Variables
+backend/.env
+frontend/.env
+.env
+backend/.env.*
+frontend/.env.*
+.env.*
+!backend/.env*.example
+!frontend/.env*.example
+!.env*.example
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE/Editor settings
+.vscode/
+.idea/
+.DS_Store
+
+# Helper scripts
+frontend/reorganize.js
+frontend/resolve-merge.js

@@ -1,0 +1,5 @@
+node_modules/
+.env
+
+# DeployPilot Temporary Data (YEH ADD KARNA HAI)
+deployments_temp/
