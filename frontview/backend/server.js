@@ -5,7 +5,7 @@ const connectDB = require("./src/config/db");
 const http = require("http"); // Node ka in-built HTTP module
 const socketIo = require("socket.io"); // Socket.io
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
 // Connect to the database
 connectDB();

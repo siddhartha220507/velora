@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'https://veloraa-deploy-zwk4.onrender.com/api';
+  import.meta.env.VITE_API_URL || 'http://51.20.250.181:3000/api';
 
 /** Socket.IO server origin (no /api suffix). */
 export const SOCKET_ORIGIN =
   import.meta.env.VITE_SOCKET_URL ||
   API_BASE_URL.replace(/\/api\/?$/, '') ||
-  'http://localhost:4000';
+  'http://51.20.250.181:3000';
 
 /** Full URL for browser redirect (Passport OAuth). */
 export const githubAuthUrl = `${API_BASE_URL}/auth/github`;
