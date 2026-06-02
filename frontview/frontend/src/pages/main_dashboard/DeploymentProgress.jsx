@@ -54,7 +54,19 @@ export default function DeploymentProgress() {
     { role: 'bot', text: 'Hello! I am Velora AI. I can help you analyze these logs if something goes wrong.' }
   ]);
   const [userInput, setUserInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false); // Tumhara purana last state
+
+  // í´¥ 1. Localhost ko dynamic public domain se replace karne ke liye utility
+  const getCleanUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('localhost')) {
+      return url.replace('localhost', '51.20.250.181.nip.io');
+    }
+    return url;
+  };
+
+  // í´¥ 2. Status 'running' aur 'successful' dono ko LIVE treat karne ke liye condition
+  const isLive = status === 'running' || status === 'successful';
 
   const socketRef = useRef(null);
   const logsEndRef = useRef(null);
@@ -319,31 +331,31 @@ export default function DeploymentProgress() {
                 </button>
 
                 {/* LIVE button â€” opens URL in new tab */}
-                {(status === 'running') && (
-                  <button
-                    onClick={() => window.open(liveUrl, '_blank')}
-                    className="flex items-center gap-2 h-8 px-3 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 hover:bg-[#22c55e]/20 transition-all group"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#22c55e]">Live</span>
-                    <ExternalLink size={10} className="text-[#22c55e]" />
-                  </button>
-                )}
+{isLive && (
+  <button
+    onClick={() => window.open(getCleanUrl(liveUrl), '_blank')}
+    className="flex items-center gap-2 h-8 px-3 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 hover:bg-[#22c55e]/20 transition-all group"
+  >
+    <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#22c55e]">Live</span>
+    <ExternalLink size={10} className="text-[#22c55e]" />
+  </button>
+)}
 
                 {/* Status badge */}
                 <div className={`h-8 px-3 rounded-lg border flex items-center font-black text-[8px] uppercase tracking-[0.2em] ${
-                  status === 'running' ? 'bg-[#22c55e]/5 border-[#22c55e]/10 text-[#22c55e]' :
-                  status === 'failed' ? 'bg-[#ef4444]/5 border-[#ef4444]/10 text-[#ef4444]' :
-                  status === 'stopped' ? 'bg-[#52525b]/10 border-[#52525b]/20 text-[#52525b]' :
-                  'bg-[#1e1e20] border-white/[0.04] text-[#52525b]'
-                }`}>
-                  <div className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                    status === 'running' ? 'bg-[#22c55e]' :
-                    status === 'failed' ? 'bg-[#ef4444]' :
-                    'bg-[#52525b] animate-pulse'
-                  }`} />
-                  {status === 'running' ? 'NOMINAL' : status === 'failed' ? 'FAULT' : status === 'stopped' ? 'STOPPED' : 'SYNCING'}
-                </div>
+  isLive ? 'bg-[#22c55e]/5 border-[#22c55e]/10 text-[#22c55e]' :
+  status === 'failed' ? 'bg-[#ef4444]/5 border-[#ef4444]/10 text-[#ef4444]' :
+  status === 'stopped' ? 'bg-[#52525b]/10 border-[#52525b]/20 text-[#52525b]' :
+  'bg-[#1e1e20] border-white/[0.04] text-[#52525b]'
+}`}>
+  <div className={`w-1.5 h-1.5 rounded-full mr-2 ${
+    isLive ? 'bg-[#22c55e]' :
+    status === 'failed' ? 'bg-[#ef4444]' :
+    'bg-[#52525b] animate-pulse'
+  }`} />
+  {isLive ? 'NOMINAL' : status === 'failed' ? 'FAULT' : status === 'stopped' ? 'STOPPED' : 'SYNCING'}
+</div>
               </div>
             </div>
 
@@ -352,38 +364,38 @@ export default function DeploymentProgress() {
               <div className="flex flex-col gap-3 min-h-0">
                 <div className="bg-[#1e1e20] border border-white/[0.04] rounded-2xl overflow-hidden shadow-elevation-1 flex flex-col flex-1">
                   
-                  {/* Preview Area â€” clickable, opens live URL */}
-                  <div
-                    className={`relative bg-[#0d0d0f] flex-1 min-h-0 overflow-hidden ${liveUrl ? 'cursor-pointer' : ''}`}
-                    onClick={() => liveUrl && window.open(liveUrl, '_blank')}
-                  >
-                    {deployment?.screenshotUrl ? (
-                      <>
-                        {/* Loader while image is fetching */}
-                        {!imageLoaded && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#0d0d0f] z-10">
-                            <Loader2 size={16} className="text-[#52525b] animate-spin" />
-                            <p className="text-[7px] font-black uppercase tracking-widest text-[#3f3f46]">Generating Preview...</p>
-                          </div>
-                        )}
-                        <img
-                          src={deployment?.screenshotUrl ? `${deployment.screenshotUrl}?t=${Date.now()}` : `https://api.microlink.io/?url=${encodeURIComponent(liveUrl)}&screenshot=true&meta=false&embed=screenshot.url`}
-                          alt="Site preview"
-                          className={`w-full h-full object-cover object-top transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                          onLoad={() => setImageLoaded(true)}
-                          onError={(e) => {
-                            // Prevent infinite error loop
-                            if (e.target.dataset.fallbackTried) {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                                setImageLoaded(true);
-                                return;
-                            }
-                            e.target.dataset.fallbackTried = 'true';
-                            // If cloudinary fails, fall back to microlink
-                            e.target.src = `https://api.microlink.io/?url=${encodeURIComponent(liveUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
-                          }}
-                        />
+                   {/* Preview Area â€” clickable, opens live URL */}
+<div
+  className={`relative bg-[#0d0d0f] flex-1 min-h-0 overflow-hidden ${liveUrl ? 'cursor-pointer' : ''}`}
+  onClick={() => liveUrl && window.open(getCleanUrl(liveUrl), '_blank')}
+>
+  {deployment?.screenshotUrl ? (
+    <>
+      {/* Loader while image is fetching */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#0d0d0f] z-10">
+          <Loader2 size={16} className="text-[#52525b] animate-spin" />
+          <p className="text-[7px] font-black uppercase tracking-widest text-[#3f3f46]">Generating Preview...</p>
+        </div>
+      )}
+      <img
+        src={deployment?.screenshotUrl ? `${deployment.screenshotUrl}?t=${Date.now()}` : `https://api.microlink.io/?url=${encodeURIComponent(getCleanUrl(liveUrl))}&screenshot=true&meta=false&embed=screenshot.url`}
+        alt="Site preview"
+        className={`w-full h-full object-cover object-top transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setImageLoaded(true)}
+        onError={(e) => {
+          if (e.target.dataset.fallbackTried) {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+              setImageLoaded(true);
+              return;
+          }
+          e.target.dataset.fallbackTried = 'true';
+          // Fixed fallback url
+          e.target.src = `https://api.microlink.io/?url=${encodeURIComponent(getCleanUrl(liveUrl))}&screenshot=true&meta=false&embed=screenshot.url`;
+        }}
+      />
+                      
                         {/* Fallback if both fail */}
                         <div className="hidden w-full h-full flex-col items-center justify-center gap-3 opacity-40">
                           <Globe size={28} />
@@ -439,22 +451,22 @@ export default function DeploymentProgress() {
                     </div>
 
                   {/* Card Footer â€” URL + info */}
-                  <div className="p-3 border-t border-white/[0.04] bg-[#161618] shrink-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#e4e4e7] truncate flex-1 mr-2">{project?.name}</span>
-                      {liveUrl && (
-                        <button
-                          onClick={() => window.open(liveUrl, '_blank')}
-                          className="flex items-center gap-1 text-[#22c55e] hover:text-white transition-colors shrink-0"
-                        >
-                          <Globe size={10} />
-                          <span className="text-[8px] font-black uppercase tracking-widest">Open</span>
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[8px] font-mono text-[#3f3f46] truncate">
-                      {liveUrl || project?.repoUrl || 'Awaiting deployment...'}
-                    </p>
+<div className="p-3 border-t border-white/[0.04] bg-[#161618] shrink-0">
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#e4e4e7] truncate flex-1 mr-2">{project?.name}</span>
+    {liveUrl && (
+      <button
+        onClick={() => window.open(getCleanUrl(liveUrl), '_blank')}
+        className="flex items-center gap-1 text-[#22c55e] hover:text-white transition-colors shrink-0"
+      >
+        <Globe size={10} />
+        <span className="text-[8px] font-black uppercase tracking-widest">Open</span>
+      </button>
+    )}
+  </div>
+  <p className="text-[8px] font-mono text-[#3f3f46] truncate">
+    {getCleanUrl(liveUrl) || project?.repoUrl || 'Awaiting deployment...'}
+  </p>
                     {latestCommit && (
                       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/[0.04]">
                         <div className="w-4 h-4 rounded bg-[#0d0d0f] border border-white/[0.06] flex items-center justify-center overflow-hidden shrink-0">

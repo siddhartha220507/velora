@@ -15,6 +15,9 @@ const { decrypt } = require('../utils/crypto');
 const Integration = require('../models/Integration');
 const { captureAndUploadScreenshot } = require('./screenshotService');
 
+// Ìºü APNA PUBLIC SERVER HOST HERE
+const SERVER_HOST = '51.20.250.181.nip.io';
+
 // Ye Map track karega ki kaunsa deployment kis process me chal raha hai (Stop karne ke kaam aayega)
 const activeProcesses = new Map();
 
@@ -87,7 +90,7 @@ const executeDeployment = async (deploymentId, io) => {
             await appendDeploymentLog(deploymentRecord, 'info', `Repository cloned to ${targetPath}`, 'build', io);
         }
 
-        // üåü INTEGRATIONS INJECTION (Category A)
+        // Ìºü INTEGRATIONS INJECTION (Category A)
         const integrations = await Integration.find({ projectId: project._id, isActive: true });
         
         let envContent = '';
@@ -119,8 +122,8 @@ const executeDeployment = async (deploymentId, io) => {
             await appendDeploymentLog(deploymentRecord, 'info', 'No environment variables to inject');
         }
 
-        // üåü NEW: Auto-Detect Framework & Commands
-        console.log(`üîç Analyzing repository structure...`);
+        // Ìºü NEW: Auto-Detect Framework & Commands
+        console.log(`Ì¥ç Analyzing repository structure...`);
         await appendDeploymentLog(deploymentRecord, 'info', 'Analyzing repository structure', 'build', io);
         const frameworkInfo = await detectFramework(targetPath);
 
@@ -129,7 +132,7 @@ const executeDeployment = async (deploymentId, io) => {
         }
 
         const appPath = frameworkInfo.projectPath || targetPath;
-        console.log(`üéØ Detected Type: ${frameworkInfo.type}`);
+        console.log(`ÌæØ Detected Type: ${frameworkInfo.type}`);
         await appendDeploymentLog(deploymentRecord, 'info', `Detected framework type: ${frameworkInfo.type}`, 'build', io);
         await appendDeploymentLog(deploymentRecord, 'info', `Using project path: ${appPath}`, 'build', io);
 
@@ -138,13 +141,11 @@ const executeDeployment = async (deploymentId, io) => {
             await appendDeploymentLog(deploymentRecord, 'info', `Preparing installation...`, 'build', io);
             
             await new Promise(async (resolve, reject) => {
-                // System check for faster package managers
                 const { execSync } = require('child_process');
                 let pkgManager = 'npm';
                 let installArgs = ['install', '--legacy-peer-deps', '--prefer-offline', '--no-audit'];
 
                 try {
-                    // Try to detect pnpm or bun for ultra-fast installs
                     execSync('pnpm --version', { stdio: 'ignore' });
                     pkgManager = 'pnpm';
                     installArgs = ['install', '--prefer-offline'];
@@ -159,14 +160,9 @@ const executeDeployment = async (deploymentId, io) => {
                 }
 
                 const finalCmd = process.platform === 'win32' ? `${pkgManager}.cmd` : pkgManager;
-                
                 await appendDeploymentLog(deploymentRecord, 'info', `Running ${pkgManager} install (Optimized)...`, 'build', io);
                 
-                const installProcess = spawn(finalCmd, installArgs, {
-                    cwd: appPath,
-                    shell: true
-                });
-
+                const installProcess = spawn(finalCmd, installArgs, { cwd: appPath, shell: true });
                 streamLogs(deploymentRecord._id.toString(), installProcess, io, 'build');
 
                 installProcess.on('close', (code) => {
@@ -180,20 +176,16 @@ const executeDeployment = async (deploymentId, io) => {
             await appendDeploymentLog(deploymentRecord, 'info', 'Skipping install phase', 'build', io);
         }
 
-        // üåü NEW: Agar Frontend hai, toh NPM Build chalao
+        // Ìºü NEW: Agar Frontend hai, toh NPM Build chalao
         if (frameworkInfo.buildCmd) {
             await appendDeploymentLog(deploymentRecord, 'info', `Running build command: ${frameworkInfo.buildCmd}`);
             await new Promise((resolve, reject) => {
-                console.log(`üî® Building project: ${frameworkInfo.buildCmd}`);
+                console.log(`Ì¥® Building project: ${frameworkInfo.buildCmd}`);
                 const buildCmdString = frameworkInfo.buildCmd;
-
-                // Cross-platform support for build command
                 const [bCmd, ...bArgs] = buildCmdString.split(' ');
                 const finalBuildCmd = (bCmd === 'npm' && process.platform === 'win32') ? 'npm.cmd' : bCmd;
 
                 const buildProcess = spawn(finalBuildCmd, bArgs, { cwd: appPath, shell: true });
-
-                // üåü BUILD COMMAND KE LOGS BHI STREAM KARO
                 streamLogs(deploymentRecord._id.toString(), buildProcess, io, 'build');
 
                 buildProcess.on('close', (code) => {
@@ -203,7 +195,6 @@ const executeDeployment = async (deploymentId, io) => {
             });
             await appendDeploymentLog(deploymentRecord, 'info', 'Build completed');
 
-            // üåü PRO-PAAS: Upload to Firebase Storage
             const buildFolder = frameworkInfo.type === 'frontend-vite' ? 'dist' : 'build';
             const localBuildPath = path.join(appPath, buildFolder);
             
@@ -218,24 +209,10 @@ const executeDeployment = async (deploymentId, io) => {
             }
         }
 
-        // üåü PRO-PAAS: Cleanup local files (except for running backends)
-        const cleanupLocalFiles = async () => {
-            try {
-                await fs.rm(targetPath, { recursive: true, force: true });
-                await appendDeploymentLog(deploymentRecord, 'info', 'üßπ Local build files cleaned up to save server space.');
-            } catch (cleanupErr) {
-                console.warn('Cleanup failed:', cleanupErr.message);
-            }
-        };
-
-        // Frontend build ho gaya, local port pe serve hoga (no cloud storage)
-        // deploymentRecord.url will be set after port is assigned below
-
         assignedPort = getAvailablePort();
-        console.log(`üöÄ Starting app on port ${assignedPort}...`);
+        console.log(`Ì∫Ä Starting app on port ${assignedPort}...`);
         await appendDeploymentLog(deploymentRecord, 'info', `Starting application on port ${assignedPort}`);
 
-        // Custom start command use karo jo detector ne nikali hai
         const startCmdString = frameworkInfo.startCmd.replace('$PORT', assignedPort);
         const [cmd, ...args] = startCmdString.split(' ');
 
@@ -246,14 +223,9 @@ const executeDeployment = async (deploymentId, io) => {
         });
         await appendDeploymentLog(deploymentRecord, 'info', `Start command launched: ${startCmdString}`, 'runtime');
 
-        // üåü START COMMAND KE LOGS BHI STREAM KARO
         streamLogs(deploymentRecord._id.toString(), startProcess, io, 'runtime');
-
-        // Is process ko Map mein save kar lo taaki baad me Kill kar sakein
         activeProcesses.set(deploymentRecord._id.toString(), startProcess);
 
-        // üåü APPROACH 1: Lifecycle Cleanup (Industry Standard)
-        // Agar frontend build ho gaya hai, toh source code delete kar do
         if (frameworkInfo.buildCmd && frameworkInfo.type.startsWith('frontend')) {
             setTimeout(async () => {
                 try {
@@ -266,33 +238,28 @@ const executeDeployment = async (deploymentId, io) => {
                             await fs.rm(itemPath, { recursive: true, force: true });
                         }
                     }
-                    await appendDeploymentLog(deploymentRecord, 'info', 'üßπ Source code cleaned up. Only build artifacts kept.');
+                    await appendDeploymentLog(deploymentRecord, 'info', 'Ì∑π Source code cleaned up. Only build artifacts kept.');
                 } catch (err) {
                     console.warn('‚ö†Ô∏è Cleanup failed:', err.message);
                 }
-            }, 5000); // Wait 5s for process stability
+            }, 5000);
         }
 
-        // Terminal ke liye local logs taaki VS Code me bhi dikhe
         startProcess.stdout.on('data', (data) => console.log(`[APP ${assignedPort}]: ${data}`));
         startProcess.stderr.on('data', (data) => console.error(`[APP ERR]: ${data}`));
 
-        // If app process exits by itself, mark final status clearly.
         startProcess.on('close', async (code, signal) => {
             try {
                 const latest = await Deployment.findById(deploymentRecord._id);
                 if (!latest) return;
 
-                // Already handled manually/earlier
                 if (['stopped', 'failed'].includes(latest.status)) {
                     activeProcesses.delete(deploymentRecord._id.toString());
                     return;
                 }
 
                 activeProcesses.delete(deploymentRecord._id.toString());
-                if (latest.port) {
-                    releasePort(latest.port);
-                }
+                if (latest.port) releasePort(latest.port);
 
                 if (code === 0) {
                     latest.status = 'stopped';
@@ -306,11 +273,7 @@ const executeDeployment = async (deploymentId, io) => {
                     io.to(`dep:${deploymentRecord._id}`).emit('deployment:status', { status: 'failed' });
                     await appendDeploymentLog(latest, 'error', latest.errorMessage, 'runtime', io);
 
-                    // üî• Send Failure Notification
-                    notifyIntegrations(latest.projectId, { 
-                        projectName: project.name, 
-                        errorMessage: latest.errorMessage 
-                    }, 'failed').catch(e => console.log("Notification error:", e.message));
+                    notifyIntegrations(latest.projectId, { projectName: project.name, errorMessage: latest.errorMessage }, 'failed').catch(e => console.log("Notification error:", e.message));
                 }
                 await latest.save();
             } catch (closeErr) {
@@ -318,29 +281,24 @@ const executeDeployment = async (deploymentId, io) => {
             }
         });
 
-        // 6. Agar process bina kisi error ke start ho gaya, toh DB update kar do
+        // Ìºü DYNAMIC PUBLIC URL ASSIGNMENT FIXED HERE
         deploymentRecord.status = 'running';
         deploymentRecord.port = assignedPort;
+        deploymentRecord.url = `http://51.20.250.181.nip.io:${assignedPort}`; // Localhost se Public IP kiya
         await deploymentRecord.save();
         
-        // üî• Send Success Notification
-        const { notifyIntegrations } = require('./notificationService');
-        notifyIntegrations(deploymentRecord.projectId, { 
-            projectName: project.name, 
-            version: deploymentRecord.version || '1.0.0' 
-        }, 'success').catch(e => console.log("Notification error:", e.message));
+        notifyIntegrations(deploymentRecord.projectId, { projectName: project.name, version: deploymentRecord.version || '1.0.0' }, 'success').catch(e => console.log("Notification error:", e.message));
 
         io.to(`dep:${deploymentId}`).emit('deployment:status', { status: 'running', url: deploymentRecord.url });
 
-        // Project ka active deployment update kar do
         project.activeDeploymentId = deploymentRecord._id;
         await project.save();
 
-        console.log(`‚úÖ Deployment ${deploymentRecord._id} is now LIVE at http://localhost:${assignedPort}`);
-        await appendDeploymentLog(deploymentRecord, 'info', `Deployment live at http://localhost:${assignedPort}`, 'runtime', io);
+        console.log(`‚úÖ Deployment ${deploymentRecord._id} is now LIVE at http://${SERVER_HOST}:${assignedPort}`);
+        await appendDeploymentLog(deploymentRecord, 'info', `Deployment live at http://51.20.250.181.nip.io:${assignedPort}`, 'runtime', io);
 
-        // üåü CLOUDINARY PREVIEW: Wait for app to be ready, then capture screenshot
-        const siteUrl = `http://localhost:${assignedPort}`;
+        // Screenshot local engine se capture hota h isliye localhost correct h yahan
+        const localSiteUrl = `http://localhost:${assignedPort}`;
         const waitForAppReady = () => new Promise((resolve) => {
             const READY_SIGNALS = ['listening', 'accepting connections', 'ready', 'started', 'running on', 'server is running'];
             let resolved = false;
@@ -359,7 +317,6 @@ const executeDeployment = async (deploymentId, io) => {
             startProcess.stdout.on('data', onData);
             startProcess.stderr.on('data', onData);
 
-            // Fallback: wait max 10s even if no ready signal is emitted
             setTimeout(() => {
                 if (!resolved) {
                     resolved = true;
@@ -371,7 +328,7 @@ const executeDeployment = async (deploymentId, io) => {
         });
 
         waitForAppReady().then(() => {
-            captureAndUploadScreenshot(siteUrl, deploymentRecord._id.toString())
+            captureAndUploadScreenshot(localSiteUrl, deploymentRecord._id.toString())
                 .then(async (cloudinaryUrl) => {
                     if (cloudinaryUrl) {
                         deploymentRecord.screenshotUrl = cloudinaryUrl;
@@ -382,45 +339,33 @@ const executeDeployment = async (deploymentId, io) => {
                 .catch(err => console.error('Preview capture failed:', err.message));
         });
 
-        // üåü NOTIFY SUCCESS (Category B)
         notifyIntegrations(project._id, { ...deploymentRecord.toObject(), projectName: project.name }, 'success');
 
     } catch (error) {
         console.error(`‚ùå Deployment failed: ${error.message}`);
-
-        // Error aane par clean up karna zaroori hai
         if (assignedPort) releasePort(assignedPort);
 
         if (deploymentRecord) {
             deploymentRecord.logs = deploymentRecord.logs || [];
-            deploymentRecord.logs.push(
-                `[${new Date().toISOString()}] [ERROR] Deployment failed: ${error.message}`
-            );
-
-            if (deploymentRecord.logs.length > 5000) {
-                deploymentRecord.logs = deploymentRecord.logs.slice(-5000);
-            }
-
+            deploymentRecord.logs.push(`[${new Date().toISOString()}] [ERROR] Deployment failed: ${error.message}`);
             deploymentRecord.status = 'failed';
             deploymentRecord.errorMessage = error.message;
             deploymentRecord.completedAt = new Date();
             await deploymentRecord.save();
 
-            // üåü NOTIFY FAILURE (Category B)
             const project = await Project.findById(deploymentRecord.projectId);
             notifyIntegrations(project._id, { ...deploymentRecord.toObject(), projectName: project.name }, 'failed');
         }
     }
 };
 
-// Stop Deployment Function
 const stopDeployment = async (deploymentId) => {
     const processToKill = activeProcesses.get(deploymentId.toString());
 
     if (processToKill) {
-        processToKill.kill(); // Node.js ka command process rokne ke liye
+        processToKill.kill();
         activeProcesses.delete(deploymentId.toString());
-        console.log(`üõë Process killed for deployment ${deploymentId}`);
+        console.log(`Ìªë Process killed for deployment ${deploymentId}`);
     }
 
     const deployment = await Deployment.findById(deploymentId);
@@ -443,45 +388,38 @@ const executeRollback = async (newDeploymentId, oldDeploymentId, io) => {
 
         await appendDeploymentLog(rollbackDeploymentRecord, 'info', `Rollback started. Target: Old Deployment ID ${oldDeploymentId}`);
 
-        // üåü HACKATHON MVP MAGIC: Build/Install skip karo!
-        // Seedha purane deployment ka path nikalo
-        // DHYAN DE: Yahan '/tmp/deploypilot' ko apne actual base path se replace kar lena jo cloneRepo use karta hai
         const basePath = path.join(__dirname, '../../deployments_temp');
         const oldAppPath = path.join(basePath, oldDeploymentRecord._id.toString());
 
         await appendDeploymentLog(rollbackDeploymentRecord, 'info', `Located old build directory: ${oldAppPath}`);
 
-        // Naya port assign karo
         assignedPort = getAvailablePort();
         await appendDeploymentLog(rollbackDeploymentRecord, 'info', `Assigning new port ${assignedPort} for rollback app`);
 
-        // Framework detect karke wapas start command nikalo
         const frameworkInfo = await detectFramework(oldAppPath);
         if (frameworkInfo.error) throw new Error(frameworkInfo.error);
 
         const startCmdString = frameworkInfo.startCmd.replace('$PORT', assignedPort);
         const [cmd, ...args] = startCmdString.split(' ');
 
-        // Start command chala do (Purane folder me!)
         const startProcess = spawn(cmd, args, {
             cwd: frameworkInfo.projectPath || oldAppPath,
             env: { ...process.env, PORT: assignedPort },
             shell: true
         });
 
-        // Logs stream karo UI ke liye
         streamLogs(rollbackDeploymentRecord._id.toString(), startProcess, io);
         activeProcesses.set(rollbackDeploymentRecord._id.toString(), startProcess);
 
-        // Success update
         rollbackDeploymentRecord.status = 'running';
         rollbackDeploymentRecord.port = assignedPort;
+        rollbackDeploymentRecord.url = `http://51.20.250.181.nip.io:${assignedPort}` // Here also public host
         await rollbackDeploymentRecord.save();
 
         project.activeDeploymentId = rollbackDeploymentRecord._id;
         await project.save();
 
-        await appendDeploymentLog(rollbackDeploymentRecord, 'info', `‚úÖ Rollback Successful! Live at http://localhost:${assignedPort}`);
+        await appendDeploymentLog(rollbackDeploymentRecord, 'info', `‚úÖ Rollback Successful! Live at http://${SERVER_HOST}:${assignedPort}`);
 
     } catch (error) {
         console.error(`‚ùå Rollback failed: ${error.message}`);

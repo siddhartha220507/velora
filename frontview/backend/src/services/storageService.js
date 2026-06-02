@@ -1,14 +1,14 @@
-const { createClient } = require('@supabase/supabase-js');
+const { createClient } = require('@supabase/supabase-js'); 
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const fs = require('fs').promises;
 const path = require('path');
 require('dotenv').config();
-
-// Supabase Configuration (Legacy - Keeping as requested)
+global.WebSocket = require('ws');
+// Supabase Configuration (Legacy - Keeping as requested)     
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'velora-deployments';
+const supabase = null;
+const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'velora';
 
 // Storj S3 Configuration (New)
 const s3 = new S3Client({
@@ -21,12 +21,12 @@ const s3 = new S3Client({
   forcePathStyle: true, 
 });
 
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || 'velora-deployments';
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || 'velora-bucket';
 
 /**
  * Uploads a file buffer or string to Storj S3
  */
-const uploadFile = async (remotePath, body, contentType = 'application/octet-stream') => {
+const uploadFile = async (remotePath, body, contentType = 'application/octet-stream') => {   
     try {
         const command = new PutObjectCommand({
             Bucket: S3_BUCKET_NAME,
@@ -48,10 +48,10 @@ const uploadFile = async (remotePath, body, contentType = 'application/octet-str
  * Helper to get all files in a directory recursively
  */
 async function getFiles(dir) {
-    const dirents = await fs.readdir(dir, { withFileTypes: true });
-    const files = await Promise.all(dirents.map((dirent) => {
-        const res = path.resolve(dir, dirent.name);
-        return dirent.isDirectory() ? getFiles(res) : res;
+    const dirents = await fs.readdir(dir, { withFileTypes: true });   
+    const files = await Promise.all(dirents.map((dirent) => { 
+        const res = path.resolve(dir, dirent.name);    
+        return dirent.isDirectory() ? getFiles(res) : res;    
     }));
     return Array.prototype.concat(...files);
 }
@@ -59,18 +59,16 @@ async function getFiles(dir) {
 /**
  * Uploads a whole directory to storage in parallel
  */
-const uploadDirectory = async (localPath, remotePrefix) => {
+const uploadDirectory = async (localPath, remotePrefix) => {  
     try {
         const files = await getFiles(localPath);
-        console.log(`üöÄ Parallel upload started: ${files.length} files found.`);
+        console.log(`Ì∫Ä Parallel upload started: ${files.length} files`);
 
-        // Parallelize uploads using Promise.all
-        // Using a chunked approach or simple parallel for small/medium folders
-        const uploadPromises = files.map(async (file) => {
-            const relativePath = path.relative(localPath, file).replace(/\\/g, '/');
-            const remotePath = `${remotePrefix}/${relativePath}`;
+        const uploadPromises = files.map(async (file) => {    
+            const relativePath = path.relative(localPath, file);
+            const remotePath = path.join(remotePrefix, relativePath).replace(/\\/g, '/');
             const content = await fs.readFile(file);
-            
+
             // Simple mime type detection based on extension
             const ext = path.extname(file).toLowerCase();
             const mimeMap = {
@@ -80,6 +78,7 @@ const uploadDirectory = async (localPath, remotePrefix) => {
                 '.json': 'application/json',
                 '.png': 'image/png',
                 '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
                 '.svg': 'image/svg+xml'
             };
             const contentType = mimeMap[ext] || 'application/octet-stream';
@@ -89,7 +88,7 @@ const uploadDirectory = async (localPath, remotePrefix) => {
 
         await Promise.all(uploadPromises);
         console.log(`‚úÖ Directory upload completed: ${remotePrefix}`);
-        return `https://${process.env.S3_ENDPOINT?.replace('https://', '')}/${S3_BUCKET_NAME}/${remotePrefix}/index.html`;
+        return `https://${process.env.S3_ENDPOINT?.replace('https://', '')}/${S3_BUCKET_NAME}/${remotePrefix}`;
     } catch (error) {
         console.error(`‚ùå Directory Upload Failed: ${error.message}`);
         throw error;

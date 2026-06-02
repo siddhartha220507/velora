@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://51.20.250.181.nip.io:3000/api';
+  import.meta.env.VITE_API_URL || 'http://51.20.250.181.nip.io:4000/api';
 
 /** Socket.IO server origin (no /api suffix). */
 export const SOCKET_ORIGIN =
@@ -10,15 +10,11 @@ export const SOCKET_ORIGIN =
   'http://51.20.250.181.nip.io:3000';
 
 /** Full URL for browser redirect (Passport OAuth). */
-export const githubAuthUrl = `${API_BASE_URL}/auth/github`;
-export const googleAuthUrl = `${API_BASE_URL}/auth/google`;
+export const githubAuthUrl = "http://51.20.250.181.nip.io:4000/api/auth/github";
+export const googleAuthUrl = "http://51.20.250.181.nip.io:4000/api/auth/google";
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: "http://51.20.250.181.nip.io:4000/api" 
 });
 
 // JWT INTERCEPTOR — Automatically attaches
@@ -37,8 +33,9 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
-);
+  (error) => {
+  return Promise.reject(error);
+});
 
 // ==========================================
 // RESPONSE INTERCEPTOR — Handles 401
@@ -142,4 +139,5 @@ export const getProjectTeam = (projectId) => api.get(`/teams/${projectId}`);
 export const inviteMember = (projectId, data) => api.post(`/teams/${projectId}/invite`, data);
 export const removeMember = (projectId, memberId) => api.delete(`/teams/${projectId}/members/${memberId}`);
 
+export { api };
 export default api;

@@ -11,15 +11,16 @@ export function WorkspaceProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (user) {
-            fetchWorkspaces();
-        } else {
-            setWorkspaces([]);
-            setActiveWorkspace(null);
-            setLoading(false);
-            localStorage.removeItem('activeWorkspaceId');
-        }
-    }, [user]);
+    // Agar tumhare paas koi token condition hai ya direct fetch karna hai
+    const token = localStorage.getItem('token');
+    
+    if (token) {
+        fetchWorkspaces();
+    } else {
+        setWorkspaces([]);
+        setActiveWorkspace(null);
+    }
+}, []);
 
     const fetchWorkspaces = async () => {
         try {

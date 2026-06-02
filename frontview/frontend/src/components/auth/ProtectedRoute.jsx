@@ -5,8 +5,12 @@ import { Zap } from 'lucide-react';
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
+    
+    // í¼Ÿ 1. LocalStorage se token check karo
+    const token = localStorage.getItem('token');
 
-    if (loading) {
+    // í¼Ÿ 2. Agar context load ho raha ho YA token mil gaya ho par user abhi state me na aaya ho, toh loader dikhao
+    if (loading || (token && !user)) {
         return (
             <div className="h-screen w-screen bg-[#050505] flex flex-col items-center justify-center font-sans">
                 <div className="flex flex-col items-center gap-6">
@@ -27,10 +31,7 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!user) {
-        // Redirect them to the /login page, but save the current location they were
-        // trying to go to when they were redirected. This allows us to send them
-        // along to that page after they login, which is a nicer user experience
-        // than dropping them off on the home page.
+        // Redirect them to the /login page
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 

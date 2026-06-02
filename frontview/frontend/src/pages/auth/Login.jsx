@@ -49,11 +49,11 @@ const Login = () => {
   };
 
   const handleGithubLogin = () => {
-    window.location.href = githubAuthUrl;
+   window.location.href = "http://51.20.250.181.nip.io:4000/api/auth/github";
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = googleAuthUrl;
+   window.location.href = "http://51.20.250.181.nip.io:4000/api/auth/google";
   };
 
   return (

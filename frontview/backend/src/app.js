@@ -34,7 +34,8 @@ app.use(compression());
 
 // 2. Helmet for Security Headers
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+  hsts: false, // Isse HTTPS par auto-upgrade hona band ho jayega
+  contentSecurityPolicy: false // CSP errors se bachne ke liye
 }));
 
 // 3. Rate Limiting to prevent DDoS/Abuse ğŸ›¡ï¸
@@ -46,15 +47,16 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // 4. Session sabse pehle aayega
-app.use(session({
+// 4. Session configuration
+app.use(session({  
     secret: process.env.SESSION_SECRET || 'mera_super_secret',
     resave: false,
     saveUninitialized: false,
-    proxy: true, // Required for secure cookies behind reverse proxy
+    proxy: true, 
     cookie: {
-        secure: sessionCookieSecure,
+        secure: false, // í±ˆ Ise ekdum false kar do kyunki hum abhi HTTP use kar rahe hain
         httpOnly: true,
-        sameSite: sessionCookieSameSite,
+        sameSite: 'lax', // í±ˆ OAuth ke liye 'lax' sabse best aur safe hai HTTP par
         maxAge: 30 * 24 * 60 * 60 * 1000
     }
 }));
@@ -65,14 +67,7 @@ app.use(passport.session());
 
 // 6. CORS - Synchronized with runtime.js
 app.use(cors({
-    origin: (origin, callback) => {
-        if (isAllowedOrigin(origin)) {
-            callback(null, true);
-        } else {
-            console.warn(`CORS blocked for origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true, // âœ… Yeh har request bhejne waale origin ko allow kar dega
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-workspace-id']
@@ -84,6 +79,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // 7. Routes
 app.use('/api/auth', authRoutes);
+app.get('/auth/google', (req, res) => res.redirect('/api/auth/google'));
+app.get('/auth/github', (req, res) => res.redirect('/api/auth/github'));
 
 app.get('/api/auth/test', (req, res) => res.json({ message: "Auth router is reachable" }));
 

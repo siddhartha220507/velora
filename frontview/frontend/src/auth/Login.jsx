@@ -79,7 +79,8 @@ const Login = () => {
             <button
               type="button"
               onClick={() => {
-                window.location.href = githubAuthUrl;
+                window.location.href = "/api/auth/github";
+		
               }}
               className="w-full bg-[#e5deb8] hover:bg-[#d4cd9e] text-black py-3 rounded-xl flex items-center justify-center gap-3 font-medium transition-all mb-8"
             >

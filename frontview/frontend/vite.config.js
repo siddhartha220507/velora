@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [tailwindcss(), react()],
-  build: {
+ build: {
     target: 'es2020',
     minify: 'esbuild',
     cssMinify: true,
@@ -16,7 +16,13 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000
   },
-  optimizeDeps: {
+ ptimizeDeps: {
     include: ['react', 'react-dom', 'framer-motion']
+  },
+
+  server: {
+    port: 3000,
+    host: '0.0.0.0',
+    allowedHosts: ['.nip.io', '51.20.250.181.nip.io'] // í¼Ÿ YEH LINE JODNI HAI
   }
 })

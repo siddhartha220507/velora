@@ -111,6 +111,10 @@ const router = createBrowserRouter([
         path: "/success",
         element: <Callback />,
       },
+	{
+        path: "/callback", // í±ˆ Yeh zaroor rakhna agar backend /callback par redirect kare
+        element: <Callback />,
+      },
       {
         path: "/dashboard",
         element: <ProtectedRoute><Dashboard /></ProtectedRoute>

@@ -104,7 +104,7 @@ exports.oauthSuccess = (req, res) => {
     }
 
     const token = generateToken(req.user._id);
-    const redirectUrl = `${frontendUrl}/?token=${encodeURIComponent(token)}`;
+    const redirectUrl = `${frontendUrl}/auth/success?token=${encodeURIComponent(token)}`;
     console.log(`[OAuth Success] Redirecting to: ${redirectUrl}`);
     res.redirect(redirectUrl);
 };

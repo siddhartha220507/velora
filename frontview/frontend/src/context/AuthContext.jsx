@@ -11,38 +11,53 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(!sessionStorage.getItem('cached_user'));
 
     const refreshUser = useCallback(async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setUser(null);
-            setLoading(false);
-            sessionStorage.removeItem('cached_user');
-            return null;
-        }
+    const token = localStorage.getItem('token');
+    if (!token) {
+        setUser(null);
+        setLoading(false);
+        sessionStorage.removeItem('cached_user');
+        return null;
+    }
 
-        try {
-            if (!user) setLoading(true);
-            const res = await getCurrentUser();
-            const userData = res.data.user;
+    try {
+    if (!user) setLoading(true);
+    const res = await getCurrentUser();
+    
+    // í¼Ÿ Sabse safe tarika: Backend jo bhi de raha hai, usko console me print karo pahle
+    console.log("Backend Se Aya Data:", res.data);
+
+    // Kuch backends data direct bhejte hain, kuch res.data.user me bhejte hain, aur kuch res.data.data me
+    const userData = res.data?.user || res.data?.data || res.data;
+    
+    // Agar object mila hai aur usme koi bhi unique identifier hai (id, _id ya email)
+    if (userData && (userData.id || userData._id || userData.email || userData.username)) {
+        if (userData.username && !userData.name) userData.name = userData.username;
+        if (userData.avatarUrl && !userData.avatar) userData.avatar = userData.avatarUrl;
+        
+        setUser(userData);
+        sessionStorage.setItem('cached_user', JSON.stringify(userData));
+        return userData;
+    } else {
+        // Agar fir bhi kuch na mile toh crash karne ki jagah backend ka format bachao
+        console.warn("User structure unknown but saving anyway to avoid crash");
+        setUser(userData || res.data);
+        return userData || res.data;
+    }
+} catch (error) {
+    console.error("Auth Refresh Failed:", error);
+    if (error.response?.status === 401) {
+        setUser(null);
+        sessionStorage.removeItem('cached_user');
+        localStorage.removeItem('token');
+    }
+    throw error; 
+} finally {
+    setLoading(false);
+}
             
-            if (userData) {
-                if (userData.username && !userData.name) userData.name = userData.username;
-                if (userData.avatarUrl && !userData.avatar) userData.avatar = userData.avatarUrl;
-            }
-            
-            setUser(userData);
-            if (userData) sessionStorage.setItem('cached_user', JSON.stringify(userData));
-            return userData;
-        } catch (error) {
-            console.error("Auth Refresh Failed:", error);
-            if (error.response?.status === 401) {
-                setUser(null);
-                sessionStorage.removeItem('cached_user');
-            }
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+ 
+}, []);
+ 
 
     useEffect(() => {
         refreshUser();
